@@ -145,9 +145,9 @@ input[type=file]::file-selector-button:hover { background: #fbbf24; }
 document.addEventListener("DOMContentLoaded", function() {
 
 // =====================================================================
-// ⚠️ PASTE YOUR KEY BETWEEN THE QUOTES BELOW ⚠️
+// YOUR PROVIDED API KEY
 // =====================================================================
-const apiKey = "AQ.Ab8RN6JEXuCyHH7zjVKoZ5pcxgLQdZYdKDPNR5TN9A0DaP7IXw" ; 
+const apiKey = "AQ.Ab8RN6JEXuCyHH7zjVKoZ5pcxgLQdZYdKDPNR5TN9A0DaP7IXw"; 
 // =====================================================================
 
 
@@ -317,7 +317,7 @@ async function getBase64(file) {
 }
 
 async function callGeminiWithBackoff(payload) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const delays = [1000, 2000, 4000, 8000, 16000];
     let attempt = 0;
 
@@ -345,8 +345,8 @@ async function callGeminiWithBackoff(payload) {
 el('ai-extract-btn').addEventListener('click', async function() {
     const statusEl = el('ai-status');
 
-    if (apiKey === "") {
-        statusEl.innerHTML = "❌ <b>API Key Missing!</b><br>Please edit this HTML file in a text editor, find <code>const apiKey = \"\";</code> on line 180, and paste your Google AI Studio key inside the quotes.";
+    if (!apiKey || apiKey === "") {
+        statusEl.innerHTML = "❌ <b>API Key Missing!</b><br>Please enter your API key in the code.";
         statusEl.style.color = "#ef4444";
         return;
     }
@@ -421,7 +421,7 @@ Format Rules:
         statusEl.style.color = "var(--green)";
     } catch (e) {
         console.error("AI Extractor Error:", e);
-        statusEl.textContent = "❌ Error connecting to AI. Check your internet or API key configuration.";
+        statusEl.innerHTML = `❌ <b>Connection Failed:</b><br>${e.message}<br><br><i>Note: Please ensure you are using a valid API key.</i>`;
         statusEl.style.color = "#ef4444";
     } finally {
         btn.classList.remove('loading');
