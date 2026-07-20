@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,7 +144,12 @@ input[type=file]::file-selector-button:hover { background: #fbbf24; }
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 
-const apiKey = "AQ.Ab8RN6JEXuCyHH7zjVKoZ5pcxgLQdZYdKDPNR5TN9A0DaP7IXw"; // Execution environment injects at runtime
+// =====================================================================
+// ⚠️ PASTE YOUR KEY BETWEEN THE QUOTES BELOW ⚠️
+// =====================================================================
+const apiKey = "AQ.Ab8RN6JEXuCyHH7zjVKoZ5pcxgLQdZYdKDPNR5TN9A0DaP7IXw" ; 
+// =====================================================================
+
 
 var SECTIONS = [
   'Compliance','ARS-2 Production','ARS-3 Production','Total RA Cumulative',
@@ -337,9 +343,16 @@ async function callGeminiWithBackoff(payload) {
 }
 
 el('ai-extract-btn').addEventListener('click', async function() {
+    const statusEl = el('ai-status');
+
+    if (apiKey === "") {
+        statusEl.innerHTML = "❌ <b>API Key Missing!</b><br>Please edit this HTML file in a text editor, find <code>const apiKey = \"\";</code> on line 180, and paste your Google AI Studio key inside the quotes.";
+        statusEl.style.color = "#ef4444";
+        return;
+    }
+
     const prodInput = el('prod-img');
     const bdInput = el('bd-img');
-    const statusEl = el('ai-status');
     const btn = this;
 
     if (!prodInput.files.length && !bdInput.files.length) {
@@ -408,7 +421,7 @@ Format Rules:
         statusEl.style.color = "var(--green)";
     } catch (e) {
         console.error("AI Extractor Error:", e);
-        statusEl.textContent = "❌ Error connecting to AI. Please try again or check API configuration.";
+        statusEl.textContent = "❌ Error connecting to AI. Check your internet or API key configuration.";
         statusEl.style.color = "#ef4444";
     } finally {
         btn.classList.remove('loading');
@@ -906,3 +919,4 @@ goPhase(1);
 </script>
 </body>
 </html>
+
