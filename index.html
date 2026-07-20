@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shift Report Generator</title>
+<title>Shift Report Generator with AI</title>
 <style>
 :root{--bg:#0d0f14;--surface:#141720;--surface2:#1c2030;--border:#2a2f42;--accent:#f59e0b;--accent2:#3b82f6;--green:#10b981;--text:#e2e8f0;--muted:#64748b;--radius:8px;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -21,7 +22,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bot
 input[type=text],input[type=number],textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:monospace;font-size:13px;padding:9px 12px;outline:none;transition:border-color .2s;margin-bottom:12px;}
 input:focus,textarea:focus{border-color:var(--accent);}
 textarea{resize:vertical;min-height:80px;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:var(--radius);border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .18s;}
+input[type=file] { width: 100%; background: var(--surface2); border: 1px dashed var(--border); border-radius: var(--radius); padding: 8px; font-size: 13px; margin-bottom: 12px; color: var(--muted); }
+input[type=file]::file-selector-button { background: var(--accent); color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-right: 10px; transition: background 0.2s; }
+input[type=file]::file-selector-button:hover { background: #fbbf24; }
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 20px;border-radius:var(--radius);border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .18s;}
 .btn-primary{background:var(--accent);color:#000;}
 .btn-primary:hover{background:#fbbf24;}
 .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
@@ -29,9 +33,9 @@ textarea{resize:vertical;min-height:80px;}
 .btn-success{background:var(--green);color:#000;}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
 .section-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-bottom:18px;}
-.section-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:pointer;text-align:left;width:100%;}
+.section-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:pointer;text-align:left;width:100%; transition: border-color 0.2s;}
 .section-btn:hover{border-color:var(--accent2);}
-.section-btn.filled{border-color:var(--green);}
+.section-btn.filled{border-color:var(--green); background: rgba(16, 185, 129, 0.05);}
 .sec-num{font-size:10px;color:var(--muted);margin-bottom:3px;font-family:monospace;}
 .sec-name{font-size:13px;font-weight:700;color:var(--text);}
 .section-btn.filled .sec-name{color:var(--green);}
@@ -52,6 +56,10 @@ textarea{resize:vertical;min-height:80px;}
 .copy-wrap{position:relative;display:inline-flex;}
 .copy-flash{position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .3s;}
 .copy-flash.show{opacity:1;}
+.spinner { border: 2px solid rgba(0,0,0,0.1); border-left-color: #000; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.btn.loading .spinner { display: inline-block; }
+.ai-status-msg { margin-top: 10px; font-size: 13px; font-weight: 600; font-family: monospace; }
 </style>
 </head>
 <body>
@@ -67,7 +75,7 @@ textarea{resize:vertical;min-height:80px;}
     <div class="card">
       <div class="card-title">Step 1 - Paste Previous Shift Report</div>
       <label>Previous Shift Report</label>
-      <textarea id="prev-report-input" rows="10" placeholder="Paste the previous shift report here..."></textarea>
+      <textarea id="prev-report-input" rows="10" placeholder="Paste the previous shift report here to carry forward calculations..."></textarea>
       <div class="btn-row">
         <button class="btn btn-primary" id="parse-btn">&#9654; PARSE &amp; CONTINUE</button>
       </div>
@@ -75,11 +83,31 @@ textarea{resize:vertical;min-height:80px;}
   </div>
 
   <div id="phase-section-select">
+    <div class="card" id="ai-extractor-card" style="border-color: var(--accent2);">
+      <div class="card-title" style="color: var(--accent2);">🤖 AI Data Extractor</div>
+      <div style="display:flex; gap:12px; margin-bottom: 8px; flex-wrap:wrap;">
+        <div style="flex: 1; min-width: 250px;">
+          <label>Production Sheet Image</label>
+          <input type="file" id="prod-img" accept="image/*">
+        </div>
+        <div style="flex: 1; min-width: 250px;">
+          <label>SAP Breakdown Image</label>
+          <input type="file" id="bd-img" accept="image/*">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="ai-extract-btn" style="background: var(--accent2); color: #fff;">
+          <span class="spinner"></span> ✨ Auto-Extract & Fill
+        </button>
+      </div>
+      <div id="ai-status" class="ai-status-msg"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">Step 2 - Fill Sections</div>
       <div class="info-box" id="shift-info-box">Loading...</div>
       <div class="section-grid" id="section-grid"></div>
-      <div class="btn-row">
+      <div class="btn-row" style="margin-top: 16px;">
         <button class="btn btn-success" id="gen-btn">&#9889; GENERATE REPORT</button>
         <button class="btn btn-secondary" id="back-btn">&#8592; BACK</button>
       </div>
@@ -115,6 +143,8 @@ textarea{resize:vertical;min-height:80px;}
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+
+const apiKey = ""; // Execution environment injects at runtime
 
 var SECTIONS = [
   'Compliance','ARS-2 Production','ARS-3 Production','Total RA Cumulative',
@@ -164,7 +194,6 @@ function to12hr(hhmm) {
   return h12 + ':' + String(p[1]).padStart(2,'0') + ap;
 }
 
-// ===== CHANGE 2: Input retention helper =====
 function restoreInputs(section, ids) {
   var saved = S.inputs[section];
   if (!saved) return;
@@ -176,7 +205,6 @@ function restoreInputs(section, ids) {
   });
 }
 
-// ===== PHASES =====
 function goPhase(n) {
   ['phase-prev-report','phase-section-select','phase-report-out'].forEach(function(id,i){
     el(id).classList.toggle('active', i === n-1);
@@ -253,6 +281,7 @@ el('copy-btn').addEventListener('click', function(){
     navigator.clipboard.writeText(txt).then(showCopyFlash).catch(function(){ fallbackCopy(txt); });
   } else { fallbackCopy(txt); }
 });
+
 function fallbackCopy(txt) {
   var ta = document.createElement('textarea');
   ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
@@ -272,23 +301,193 @@ el('preview-toggle-btn').addEventListener('click', function(){
   this.textContent = hidden ? 'HIDE' : 'SHOW';
 });
 
-// ===== GRID =====
+// ===== AI INTEGRATION MODULE =====
+async function getBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+    });
+}
+
+async function callGeminiWithBackoff(payload) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    const delays = [1000, 2000, 4000, 8000, 16000];
+    let attempt = 0;
+
+    while (attempt < 5) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`HTTP Error ${response.status}: ${errText}`);
+            }
+            const jsonResult = await response.json();
+            return jsonResult.candidates[0].content.parts[0].text;
+        } catch (err) {
+            attempt++;
+            if (attempt >= 5) throw err;
+            await new Promise(r => setTimeout(r, delays[attempt - 1]));
+        }
+    }
+}
+
+el('ai-extract-btn').addEventListener('click', async function() {
+    const prodInput = el('prod-img');
+    const bdInput = el('bd-img');
+    const statusEl = el('ai-status');
+    const btn = this;
+
+    if (!prodInput.files.length && !bdInput.files.length) {
+        statusEl.textContent = "⚠️ Please upload at least one image to extract.";
+        statusEl.style.color = "var(--accent)";
+        return;
+    }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+    statusEl.textContent = "⏳ Analyzing images and extracting data...";
+    statusEl.style.color = "var(--text)";
+
+    const systemPrompt = `You are an industrial data extractor.
+Extract data from the handwritten log and SAP breakdown screen into the JSON schema provided.
+
+Format Rules:
+1. ARS-2: Extract numbers for LUL, AB, BP, TP, RR, RH, SS, RS. Combine RR/RH/SS/RS as "RR/RH/SS/RS" (e.g. "60/36/57/52").
+   DO NOT extract Rodded Anode (RA) data for ARS-2.
+2. Bath Handling: Extract numbers for P, T, R1, R2, F1, F2, F3, F4. Combine R1/R2/F1/F2/F3/F4 as "R1/R2/F1/F2/F3/F4" (e.g. "71/120/170/440/200/00").
+3. Warehouse:
+   - whstock: Put RAP/SAP/EBB/EAP combined (e.g. "611/533/123/10").
+   - whsent: Put RA/EB sent combined (e.g. "676/79").
+   - whrcv: Put SA/SB received combined (e.g. "628/86").
+4. Breakdowns: From the SAP screen, list events as "* Description (HH:MM AM/PM - HH:MM AM/PM)".
+   ROUTING RULES:
+   - If description contains "RMT" (case insensitive), add ONLY to the 'rmt' field.
+   - If description contains "mill", "sbh", or "scoopbath" (case insensitive), add ONLY to the 'sbh_mill' field.
+   - All other breakdowns go to the 'breakdowns' field.
+   Join multiple events with newlines (\\n).`;
+
+    const payload = {
+        contents: [{ role: "user", parts: [{ text: "Extract the data into JSON." }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "OBJECT",
+                properties: {
+                    lul: { type: "STRING" }, ab: { type: "STRING" }, bp: { type: "STRING" },
+                    rr: { type: "STRING" }, 
+                    bathprod: { type: "STRING" }, tanker: { type: "STRING" }, bathstock: { type: "STRING" },
+                    whstock: { type: "STRING" }, whsent: { type: "STRING" }, whrcv: { type: "STRING" },
+                    breakdowns: { type: "STRING" }, sbh_mill: { type: "STRING" }, rmt: { type: "STRING" }
+                }
+            }
+        }
+    };
+
+    try {
+        if (prodInput.files.length > 0) {
+            const b64 = await getBase64(prodInput.files[0]);
+            payload.contents[0].parts.push({ inlineData: { mimeType: prodInput.files[0].type || 'image/jpeg', data: b64 } });
+        }
+        if (bdInput.files.length > 0) {
+            const b64 = await getBase64(bdInput.files[0]);
+            payload.contents[0].parts.push({ inlineData: { mimeType: bdInput.files[0].type || 'image/jpeg', data: b64 } });
+        }
+
+        const resultText = await callGeminiWithBackoff(payload);
+        const data = JSON.parse(resultText);
+
+        autoFillFromAI(data);
+
+        statusEl.textContent = "✅ Extraction successful! Missing fields can be manually edited below.";
+        statusEl.style.color = "var(--green)";
+    } catch (e) {
+        console.error("AI Extractor Error:", e);
+        statusEl.textContent = "❌ Error connecting to AI. Please try again or check API configuration.";
+        statusEl.style.color = "#ef4444";
+    } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+    }
+});
+
+function autoFillFromAI(json) {
+    if(json.lul || json.ab || json.bp || json.rr) {
+        var roddedAnodes = 0; // Left empty per rules
+        var cmDisplay = ''; 
+        var bp = parseInt(json.bp)||0;
+        
+        // Reset rodded anodes since it will be entered manually
+        S.roddedAnodesCum = S.nextShift === 'C' ? 0 : (S.prevRoddedAnode || 0);
+
+        // Format LUL
+        let lulVal = json.lul || '';
+        if (lulVal && !lulVal.includes('/')) {
+            lulVal = '800/' + lulVal;
+        } else if (!lulVal) {
+            lulVal = '800/';
+        }
+
+        var ars2Str = '\u2022 *LUL* Production (Target/Actual)- '+ lulVal +'\n'+
+                      '\u2022Rodded anodes (Cumulative)- '+S.roddedAnodesCum+'(M)\n'+
+                      '\u2022Rods hooked- 0\n'+
+                      '\u2022 *CM*/AB/BP- '+cmDisplay+'/'+(json.ab || '')+'/'+bp+'\n'+
+                      '\u2022RR/RH/SS/RS- '+(json.rr || '')+'\n'+
+                      '\u2022Butt/GS production- '+(bp*0.22).toFixed(0)+' mt';
+                      
+        saveSection('ARS-2 Production', ars2Str, {lul: lulVal, ab: json.ab||'', bp: json.bp||'', rr: json.rr||'', ra: ''});
+    }
+    
+    if(json.bathprod || json.tanker || json.bathstock) {
+        var bp3 = parseInt(json.bathprod)||0, tnk = parseInt(json.tanker)||0;
+        var tc2 = S.nextShift === 'C' ? tnk : S.prevTankerCum+tnk;
+        var bc2 = S.nextShift === 'C' ? bp3 : S.prevBathCum+bp3;
+        var bathStr = '\u2022Bath prod- '+bp3+' mt\n\u2022Cumulative bath- '+bc2+' mt\n'+
+                      '\u2022Tanker- '+tnk+' nos\n\u2022Tankers (cumulative)- '+tc2+' nos\n'+
+                      '\u2022RBS1/RBS2/F1/F2/F3/F4 - '+(json.bathstock || '');
+        saveSection('Bath Handling', bathStr, {bathprod: json.bathprod||'', tanker: json.tanker||'', bathstock: json.bathstock||''});
+    }
+
+    if(json.whstock || json.whsent || json.whrcv) {
+        var whStr = '\u2022 RAP/SAP/EBB/EAP - '+(json.whstock || '')+'\n'+
+                    '\u2022 Sent RA/EB - '+(json.whsent || '')+'\n'+
+                    '\u2022 Rec SA/SB - '+(json.whrcv || '');
+        saveSection('Warehouse', whStr, {whstock: json.whstock||'', whsent: json.whsent||'', whrcv: json.whrcv||''});
+    }
+
+    if(json.breakdowns) saveSection('Breakdowns', json.breakdowns);
+    if(json.sbh_mill) saveSection('SBH & Mill', json.sbh_mill);
+    if(json.rmt) saveSection('RMT', json.rmt);
+}
+
+// ===== GRID & STATE MANAGEMENT =====
 function renderGrid() {
   var grid = el('section-grid');
   grid.innerHTML = '';
   SECTIONS.forEach(function(sec, i) {
     var btn = document.createElement('button');
-    btn.className = 'section-btn' + (S.data[sec] !== null ? ' filled' : '');
+    var isFilled = S.data[sec] !== null;
+    
+    // Total RA Cumulative is calculated in the background, hide the manual filled checkmark
+    if (sec === 'Total RA Cumulative') isFilled = false;
+    
+    btn.className = 'section-btn' + (isFilled ? ' filled' : '');
     btn.innerHTML =
       '<div class="sec-num">#' + String(i+1).padStart(2,'0') + '</div>' +
       '<div class="sec-name">' + sec + '</div>' +
-      '<div class="sec-tick">&#10004; filled</div>';
+      '<div class="sec-tick" style="' + (isFilled ? 'display:block;' : 'display:none;') + '">&#10004; filled</div>';
+    
     btn.addEventListener('click', (function(s){ return function(){ openModal(s); }; })(sec));
     grid.appendChild(btn);
   });
 }
 
-// ===== PREVIEW =====
 function renderPreview() {
   var filled = SECTIONS.filter(function(s){ return S.data[s] !== null; });
   var card = el('preview-card');
@@ -301,7 +500,6 @@ function renderPreview() {
   el('preview-content').textContent = text;
 }
 
-// ===== MODAL =====
 var SECTION_FIELDS = {
   'Compliance':        ['nm','uauc','permits','m2notif'],
   'ARS-2 Production':  ['lul','ab','bp','rr','ra'],
@@ -320,22 +518,25 @@ function openModal(section) {
   t.className = 'modal-title'; t.textContent = section;
   body.appendChild(t);
   body.appendChild(buildForm(section));
-  // Restore AFTER form is in DOM
   if (SECTION_FIELDS[section]) restoreInputs(section, SECTION_FIELDS[section]);
   el('modal-overlay').classList.add('open');
 }
+
 function closeModal() { el('modal-overlay').classList.remove('open'); }
 
-// ===== CHANGE 3: saveSection now accepts rawInputs =====
 function saveSection(section, value, rawInputs) {
   S.data[section] = value;
-  if (rawInputs) S.inputs[section] = rawInputs;
+  if (rawInputs) Object.assign(S.inputs[section] = S.inputs[section] || {}, rawInputs);
+  
+  // Background Auto-Calculation for Total RA Cumulative
+  var t = (S.roddedAnodesCum || 0) + (S.ars3RaFtd || 0);
+  S.data['Total RA Cumulative'] = '(Ars-2+Ars-3)='+(S.roddedAnodesCum || 0)+'+'+(S.ars3RaFtd || 0)+'='+t;
+
   closeModal();
   renderGrid();
   renderPreview();
 }
 
-// ===== FORM HELPERS =====
 function fld(id, lbl, type, ph) {
   return '<label>' + lbl + '</label><input type="' + (type||'text') + '" id="' + id + '" placeholder="' + (ph||'') + '">';
 }
@@ -368,7 +569,6 @@ function regexParse(raw, re) {
   return p;
 }
 
-// Wire tab clicks via delegation on modal-body
 el('modal-body').addEventListener('click', function(e) {
   var btn = e.target.closest ? e.target.closest('[data-tg]') : null;
   if (!btn) return;
@@ -387,7 +587,6 @@ function pane(group, idx, content, hidden) {
   return '<div id="' + group + '-pane-' + idx + '"' + (hidden?' class="hidden"':'') + '>' + content + '</div>';
 }
 
-// ===== FORMS =====
 function buildForm(section) {
   var wrap = document.createElement('div');
 
@@ -483,7 +682,7 @@ function buildForm(section) {
   else if (section === 'Total RA Cumulative') {
     var total = (S.roddedAnodesCum||0)+(S.ars3RaFtd||0);
     wrap.innerHTML = '<div class="info-box">ARS-2 Cumulative: <b>'+(S.roddedAnodesCum||0)+
-      '</b> + ARS-3 FTD: <b>'+(S.ars3RaFtd||0)+'</b> = <b>'+total+'</b><br>Fill ARS-2 and ARS-3 first, then come back.</div>';
+      '</b> + ARS-3 FTD: <b>'+(S.ars3RaFtd||0)+'</b> = <b>'+total+'</b><br>This section is automatically calculated when you save ARS-2 and ARS-3 Production sections.</div>';
     wrap.appendChild(saveCancelRow(function(){
       var t=(S.roddedAnodesCum||0)+(S.ars3RaFtd||0);
       saveSection('Total RA Cumulative','(Ars-2+Ars-3)='+(S.roddedAnodesCum||0)+'+'+(S.ars3RaFtd||0)+'='+t);
@@ -708,3 +907,6 @@ goPhase(1);
 </script>
 </body>
 </html>
+
+
+```
