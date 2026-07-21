@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -147,7 +146,10 @@ document.addEventListener("DOMContentLoaded", function() {
 // =====================================================================
 // YOUR PROVIDED API KEY
 // =====================================================================
-const apiKey = "AQ.Ab8RN6JttMZNdzRpNkOFC2OGPVqFvhc_zrRyGbj4mSNW-OocaA"; 
+// Paste your deployed Apps Script Web App URL here (ends in /exec).
+// This proxy handles Gemini auth for you via the script's own OAuth token,
+// so no Gemini API key is needed in this file at all.
+const geminiProxyUrl = "https://script.google.com/macros/s/AKfycbzVdqZMX-Uz7J25hXZ13GanJm8xtyq9rSWGpWMpzZyESyXiHxjadxjM5iZwzZTZaSBZ/exec";
 // =====================================================================
 
 
@@ -317,22 +319,25 @@ async function getBase64(file) {
 }
 
 async function callGeminiWithBackoff(payload) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     const delays = [1000, 2000, 4000, 8000, 16000];
     let attempt = 0;
 
     while (attempt < 5) {
         try {
-            const response = await fetch(url, {
+            const response = await fetch(geminiProxyUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ model: 'gemini-2.5-flash', geminiPayload: payload })
             });
             if (!response.ok) {
                 const errText = await response.text();
                 throw new Error(`HTTP Error ${response.status}: ${errText}`);
             }
-            const jsonResult = await response.json();
+            const proxyResult = await response.json();
+            if (!proxyResult.ok) {
+                throw new Error(`Gemini Error ${proxyResult.status}: ${proxyResult.body}`);
+            }
+            const jsonResult = JSON.parse(proxyResult.body);
             return jsonResult.candidates[0].content.parts[0].text;
         } catch (err) {
             attempt++;
@@ -345,8 +350,8 @@ async function callGeminiWithBackoff(payload) {
 el('ai-extract-btn').addEventListener('click', async function() {
     const statusEl = el('ai-status');
 
-    if (!apiKey || apiKey === "") {
-        statusEl.innerHTML = "❌ <b>API Key Missing!</b><br>Please enter your API key in the code.";
+    if (!geminiProxyUrl || geminiProxyUrl === "" || geminiProxyUrl === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+        statusEl.innerHTML = "❌ <b>Proxy URL Missing!</b><br>Please paste your deployed Apps Script Web App URL into geminiProxyUrl in the code.";
         statusEl.style.color = "#ef4444";
         return;
     }
@@ -421,7 +426,7 @@ Format Rules:
         statusEl.style.color = "var(--green)";
     } catch (e) {
         console.error("AI Extractor Error:", e);
-        statusEl.innerHTML = `❌ <b>Connection Failed:</b><br>${e.message}<br><br><i>Note: Please ensure you are using a valid API key.</i>`;
+        statusEl.innerHTML = `❌ <b>Connection Failed:</b><br>${e.message}<br><br><i>Note: Please ensure your Apps Script proxy is deployed and the URL is correct.</i>`;
         statusEl.style.color = "#ef4444";
     } finally {
         btn.classList.remove('loading');
@@ -919,4 +924,3 @@ goPhase(1);
 </script>
 </body>
 </html>
-
