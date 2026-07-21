@@ -345,7 +345,7 @@ async function callGeminiWithBackoff(payload) {
 el('ai-extract-btn').addEventListener('click', async function() {
     const statusEl = el('ai-status');
 
-    if (!apiKey || apiKey === "" || apiKey === "AIzaSyDhzXfHIdK1DxKHBJzVNZjz5WvUHlk3Geg") {
+    if (!apiKey || apiKey === "" || apiKey === "") {
         statusEl.innerHTML = "❌ <b>API Key Missing!</b><br>Please enter your working API key in the code.";
         statusEl.style.color = "#ef4444";
         return;
